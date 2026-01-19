@@ -1,0 +1,647 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordly | Interactive Dictionary</title>
+    <meta name="description" content="A modern, interactive dictionary SPA built with vanilla HTML, CSS, and JavaScript.">
+    
+    <style>
+        /* =========================================
+           CSS VARIABLES & RESET
+           ========================================= */
+        :root {
+            --primary-color: #8b5cf6; /* Violet */
+            --primary-hover: #7c3aed;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --error-color: #ef4444;
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --radius: 12px;
+            --font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* =========================================
+           HEADER & NAVIGATION
+           ========================================= */
+        header {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* =========================================
+           MAIN LAYOUT
+           ========================================= */
+        main {
+            flex: 1;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        /* =========================================
+           SEARCH SECTION
+           ========================================= */
+        .search-container {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .search-title {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+
+        .search-form {
+            display: flex;
+            gap: 0.75rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .input-group {
+            position: relative;
+            flex: 1;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius);
+            font-size: 1rem;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+        }
+
+        .btn-search {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0 1.5rem;
+            border-radius: var(--radius);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-search:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-search:active {
+            transform: translateY(0);
+        }
+
+        /* =========================================
+           STATUS MESSAGES (Error / Loading)
+           ========================================= */
+        .status-message {
+            display: none; /* Hidden by default */
+            padding: 1rem;
+            border-radius: var(--radius);
+            margin-bottom: 2rem;
+            text-align: center;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .status-error {
+            background-color: #fef2f2;
+            color: var(--error-color);
+            border: 1px solid #fecaca;
+        }
+
+        .status-loading {
+            background-color: #f5f3ff;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        /* Spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(139, 92, 246, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        /* =========================================
+           RESULTS SECTION
+           ========================================= */
+        #results-area {
+            display: none; /* Hidden until data arrives */
+        }
+
+        .word-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .word-info h1 {
+            font-size: 3rem;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+            color: var(--text-main);
+        }
+
+        .phonetic {
+            color: var(--primary-color);
+            font-family: monospace;
+            font-size: 1.2rem;
+        }
+
+        .audio-btn {
+            background-color: #f1f5f9;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+            color: var(--primary-color);
+        }
+
+        .audio-btn:hover {
+            background-color: #e0e7ff;
+            transform: scale(1.05);
+        }
+
+        .audio-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        /* Meaning Sections */
+        .meaning-section {
+            margin-bottom: 2rem;
+        }
+
+        .part-of-speech {
+            font-style: italic;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .part-of-speech::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background-color: var(--border-color);
+        }
+
+        .definition-list {
+            list-style: none;
+            padding-left: 1rem;
+        }
+
+        .definition-item {
+            position: relative;
+            padding-left: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .definition-item::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .definition-text {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .example {
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .example::before {
+            content: '"';
+        }
+        .example::after {
+            content: '"';
+        }
+
+        /* Synonyms */
+        .synonyms-box {
+            margin-top: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .synonyms-label {
+            font-weight: bold;
+            color: var(--text-muted);
+            margin-right: 0.5rem;
+        }
+
+        .synonym-tag {
+            background-color: #f1f5f9;
+            color: var(--primary-color);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .synonym-tag:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Source Footer */
+        .result-footer {
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .source-link {
+            color: var(--text-main);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .source-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--border-color);
+            background: var(--card-bg);
+        }
+
+        /* =========================================
+           ANIMATIONS & RESPONSIVE
+           ========================================= */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .search-form {
+                flex-direction: column;
+            }
+            .btn-search {
+                width: 100%;
+                padding: 0.85rem;
+            }
+            .word-info h1 {
+                font-size: 2rem;
+            }
+            header {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
+            Wordly
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Search Section -->
+        <section class="search-container" aria-label="Word Search">
+            <h2 class="search-title">Discover the meaning of words</h2>
+            <form id="search-form" class="search-form" novalidate>
+                <div class="input-group">
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        placeholder="Enter a word (e.g., serendipity)" 
+                        aria-label="Search word input"
+                        autocomplete="off"
+                    >
+                </div>
+                <button type="submit" class="btn-search" aria-label="Search">
+                    <span>Search</span>
+                </button>
+            </form>
+        </section>
+
+        <!-- Loading State -->
+        <div id="loading-indicator" class="status-message status-loading" role="status">
+            <div class="spinner"></div>
+            <span>Searching the dictionary...</span>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-message" class="status-message status-error" role="alert">
+            <!-- Dynamic error content goes here -->
+        </div>
+
+        <!-- Results Display -->
+        <section id="results-area" aria-live="polite">
+            <!-- Content injected via JavaScript -->
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        &copy; 2023 Wordly Dictionary SPA. Powered by Free Dictionary API.
+    </footer>
+
+    <script>
+        /**
+         * Wordly - Single Page Application Logic
+         * Handles API interaction, DOM manipulation, and user events.
+         */
+
+        // DOM Elements
+        const searchForm = document.getElementById('search-form');
+        const searchInput = document.getElementById('search-input');
+        const resultsArea = document.getElementById('results-area');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const errorMessage = document.getElementById('error-message');
+
+        // API Configuration
+        const API_BASE_URL = 'https://api.dictionaryapi.dev/api/v2/entries/en/';
+
+        // Initial State setup
+        document.addEventListener('DOMContentLoaded', () => {
+            searchInput.focus();
+        });
+
+        /**
+         * Event Listener: Handle Form Submission
+         */
+        searchForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent page reload
+            
+            const query = searchInput.value.trim().toLowerCase();
+
+            if (!query) {
+                showError('Please enter a word to search.');
+                return;
+            }
+
+            // Reset UI for new search
+            resetUI();
+            showLoading(true);
+
+            try {
+                // Fetch data from API
+                const response = await fetch(`${API_BASE_URL}${query}`);
+                
+                if (!response.ok) {
+                    // Handle 404 Not Found or other server errors
+                    if (response.status === 404) {
+                        throw new Error(`Sorry, we couldn't find a definition for "${query}".`);
+                    } else {
+                        throw new Error('Something went wrong. Please try again later.');
+                    }
+                }
+
+                const data = await response.json();
+                displayResults(data);
+                searchInput.blur(); // Remove focus from input on mobile
+
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                showLoading(false);
+            }
+        });
+
+        /**
+         * Function: Reset UI Elements
+         * Hides previous results and errors before a new search.
+         */
+        function resetUI() {
+            resultsArea.style.display = 'none';
+            errorMessage.style.display = 'none';
+            resultsArea.innerHTML = ''; // Clear previous results
+        }
+
+        /**
+         * Function: Toggle Loading State
+         * @param {boolean} isLoading - True to show loader, false to hide
+         */
+        function showLoading(isLoading) {
+            loadingIndicator.style.display = isLoading ? 'flex' : 'none';
+            // Disable search button while loading to prevent double requests
+            const submitBtn = searchForm.querySelector('button');
+            submitBtn.disabled = isLoading;
+            submitBtn.style.opacity = isLoading ? '0.7' : '1';
+        }
+
+        /**
+         * Function: Display Error Message
+         * @param {string} message - The error text to display
+         */
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            // Shake animation effect
+            errorMessage.animate([
+                { transform: 'translateX(0)' },
+                { transform: 'translateX(-5px)' },
+                { transform: 'translateX(5px)' },
+                { transform: 'translateX(0)' }
+            ], { duration: 300 });
+        }
+
+        /**
+         * Function: Render Results to DOM
+         * @param {Array} data - The JSON response from the API
+         */
+        function displayResults(data) {
+            // The API returns an array, we use the first entry (most relevant)
+            const wordData = data[0];
+            
+            // 1. Extract Phonetics (Find one with audio)
+            const audioPhonetic = wordData.phonetics.find(p => p.audio && p.audio !== '') || wordData.phonetics[0];
+            const phoneticText = wordData.phonetics.find(p => p.text)?.text || '';
+            const audioSrc = audioPhonetic ? audioPhonetic.audio : null;
+
+            // 2. Build HTML Structure
+            resultsArea.style.display = 'block';
+
+            // Header Section
+            const headerHtml = `
+                <div class="word-header">
+                    <div class="word-info">
+                        <h1>${wordData.word}</h1>
+                        ${phoneticText ? `<span class="phonetic">${phoneticText}</span>` : ''}
+                    </div>
+                    ${audioSrc ? `
+                        <button class="audio-btn" onclick="playAudio('${audioSrc}')" aria-label="Play pronunciation">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                            </svg>
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+
+            // Meanings Loop
+            let meaningsHtml = '';
+            wordData.meanings.forEach(meaning => {
+                const definitionsList = meaning.definitions.slice(0, 5).map(def => `
+                    <li class="definition-item">
+                        <div class="definition-text">${def.definition}</div>
+                        ${def.example ? `<div class="example">${def.example}</div>` : ''}
+                    </li>
+                `).join('');
+
+                const synonymsHtml = meaning.synonyms.length > 0 
+                    ? `<div class="synonyms-box">
+                        <span class="synonyms-label">Synonyms:</span>
+                        ${meaning.synonyms.slice(0, 6).map(syn => 
+                            `<span class="synonym-tag" onclick="searchSynonym('${syn}')">${syn}</span>`
+                        ).join('')}
+                       </div>` 
+                    : '';
+
+                meaningsHtml += `
+                    <div class="meaning-section">
+                        <div class="part-of-speech">${meaning.partOfSpeech}</div>
+                        <ul class="definition-list">
+                            ${definitionsList}
+                        </ul>
+                        ${synonymsHtml}
+                    </div>
+                `;
+            });
+
+            // Footer Section (Source)
+            const footerHtml = wordData.sourceUrls.length > 0 
+                ? `<div class="result-footer">
+                     Source: <a href="${wordData.sourceUrls[0]}" target="_blank" class="source-link">Wiktionary</a>
+                   </div>` 
+                : '';
+
+            // Inject HTML
+            resultsArea.innerHTML = headerHtml + meaningsHtml + footerHtml;
+        }
+
+        /**
+         * Function: Play Audio
+         * Creates an audio object and plays it.
+         * @param {string} url - URL of the audio file
+         */
+        window.playAudio = function(url) {
+            const audio = new Audio(url);
+            audio.play().catch(err => {
+                console.error("Audio playback failed", err);
+                // Optional: Show a small toast if audio fails
+            });
+        };
+
+        /**
+         * Function: Search for a Synonym
+         * When a user clicks a synonym tag, it triggers a new search.
+         * @param {string} word - The synonym word to search
+         */
+        window.searchSynonym = function(word) {
+            searchInput.value = word;
+            // Trigger the form submit event programmatically
+            searchForm.dispatchEvent(new Event('submit'));
+        };
+
+    </script>
+</body>
+</html>
+```
